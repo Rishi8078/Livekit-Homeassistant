@@ -1,0 +1,21 @@
+[project]
+name = "livekit-homeassistant"
+version = "0.1.0"
+description = "LiveKit voice agent with Home Assistant MCP integration"
+requires-python = ">=3.12"
+dependencies = [
+    "livekit-agents[mcp]",
+    "livekit-plugins-openai",
+    "livekit-plugins-silero",
+    "livekit-plugins-google",
+    "livekit-plugins-noise-cancellation",
+    "livekit-plugins-realtimestt",
+    "mem0ai",
+    "duckduckgo-search",
+    "langchain-community",
+    "requests",
+    "python-dotenv",
+    "httpx",
+    "psutil",
+    "pydantic",
+]

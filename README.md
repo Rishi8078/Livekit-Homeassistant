@@ -1,112 +1,100 @@
 # LiveKit AI Assistant with Home Assistant MCP Integration
 
-A sophisticated AI personal assistant built with LiveKit Agents that integrates with Home Assistant via MCP (Model Context Protocol). The assistant provides voice interaction, smart home control, weather information, web search, and more.
+A voice assistant built on LiveKit Agents that controls Home Assistant over MCP (Model Context Protocol). Speech in and out is handled by Google's Gemini Realtime model; smart-home control, weather, web search, time and system status are exposed as tools.
 
 ## Features
 
-- **Voice Assistant**: Real-time voice interaction with Google's Realtime Model
-- **Wake Word Detection**: Only responds when called by name (e.g., "Friday", "Hey Friday")
-- **Smart Home Control**: Full Home Assistant integration via MCP
+- **Voice Assistant**: Real-time voice interaction with Google's Gemini Realtime model
+- **Smart Home Control**: Home Assistant integration via MCP
+- **Wake Word Detection**: Optional, via the RealtimeSTT plugin and openWakeWord
 - **Weather Information**: Current weather for any city
-- **Web Search**: Real-time information lookup
+- **Web Search**: DuckDuckGo lookups
 - **Time Management**: Local and timezone-specific time queries
 - **System Monitoring**: Health and status information
-- **Noise Cancellation**: Optional background noise reduction
-- **Multi-language Support**: Automatic language detection and response
+- **Noise Cancellation**: Optional background noise reduction (LiveKit BVC)
+- **Multi-language**: The agent is instructed to reply in the user's language
 
 ## Prerequisites
 
-- Python 3.9+
-- Home Assistant instance with MCP server enabled
+- Python 3.12+ and [uv](https://docs.astral.sh/uv/)
+- Home Assistant instance with the MCP Server integration enabled
 - LiveKit account and credentials
-- Google Cloud credentials for speech services
+- Google AI API key (Gemini Realtime)
 
 ## Installation
 
 1. **Clone the repository**:
    ```bash
    git clone <repository-url>
-   cd lievkit
+   cd Livekit-Homeassistant
    ```
 
-2. **Create virtual environment**:
+2. **Install dependencies** (creates `.venv` automatically):
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   uv sync
    ```
 
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Set up environment variables**:
+3. **Set up environment variables**:
    Create a `.env` file in the project root:
    ```env
-   # LiveKit Configuration
+   # LiveKit
    LIVEKIT_URL=your_livekit_url
    LIVEKIT_API_KEY=your_api_key
    LIVEKIT_API_SECRET=your_api_secret
-   
-   # Google Cloud Configuration
-   GOOGLE_APPLICATION_CREDENTIALS=path/to/your/credentials.json
-   
-   # Home Assistant MCP Configuration
+
+   # Google AI (Gemini Realtime)
+   GOOGLE_API_KEY=your_google_api_key
+
+   # Home Assistant REST (required — the agent won't load its HA config without a token)
+   HA_URL=https://your-ha-instance
+   HA_TOKEN=your_long_lived_access_token
+
+   # Home Assistant MCP (required — the agent refuses to start without these)
    HOME_ASSISTANT_MCP_URL=https://your-ha-instance/mcp_server/sse
    HOME_ASSISTANT_TOKEN=your_long_lived_access_token
-   
-   # Wake Word Configuration (Optional)
-   WAKE_WORD_ENABLED=true
-   WAKE_WORDS=friday,hey friday,sir friday,mr friday,good morning friday
-   WAKE_WORD_TIMEOUT=30
    ```
 
 ## Wake Word Functionality
 
-The assistant uses wake word detection to only respond when called by name:
+Wake word detection is optional and comes from the `livekit-plugins-realtimestt` plugin. If the plugin is missing or fails to configure, `agent.py` logs a warning and runs without it — the agent then responds to all speech.
 
-### **Default Wake Words:**
-- "Friday" - Basic wake word
-- "Hey Friday" - Casual wake word
-- "Sir Friday" - Formal wake word
-- "Mr Friday" - Alternative formal wake word
-- "Good morning Friday" - Greeting wake word
+Wake words are **openWakeWord model names**, not free-form phrases. Defaults: `hey_assistant`, `computer`, `friday`.
 
-### **How It Works:**
-1. **Sleep Mode**: Assistant ignores all speech until wake word is detected
-2. **Active Listening**: After wake word, assistant listens for 30 seconds (configurable)
-3. **Command Processing**: Commands are processed normally during active listening
-4. **Auto-Sleep**: Returns to sleep mode after timeout
+### Configuration
 
-### **Configuration:**
 ```env
 # Enable/disable wake word detection
-WAKE_WORD_ENABLED=true
+AGENT_ENABLE_WAKE_WORD=true
 
-# Custom wake words (comma-separated)
-WAKE_WORDS=friday,hey friday,sir friday
+# Wake word models (comma-separated openWakeWord names)
+AGENT_WAKE_WORDS=hey_assistant,computer,friday
 
-# How long to stay active after wake word (seconds)
-WAKE_WORD_TIMEOUT=30
+# Wake word backend
+AGENT_WAKEWORD_BACKEND=openwakeword
+
+# Seconds of silence before wake word detection arms
+AGENT_WAKE_WORD_DELAY=0.5
 ```
+
+There is no sleep/active-listening timeout: once the wake word fires, the session behaves like a normal LiveKit voice session.
 
 ## Home Assistant MCP Setup
 
-The assistant uses MCP (Model Context Protocol) for Home Assistant integration, which provides:
+The assistant uses MCP for Home Assistant integration, which provides:
 - Real-time entity state monitoring
-- Complete service control capabilities
+- Service control capabilities
 - Scene activation and automation control
 - Color and brightness control for lights
-- All Home Assistant features through the MCP interface
 
 ### Setting up MCP in Home Assistant
 
-1. **Install the MCP Server add-on** in Home Assistant
-2. **Configure the MCP Server** with your Home Assistant URL and token
-3. **Enable the MCP Server** and note the SSE endpoint URL
-4. **Set the environment variables**:
-   - `HOME_ASSISTANT_MCP_URL`: The MCP server SSE endpoint
-   - `HOME_ASSISTANT_TOKEN`: Your long-lived access token
+1. **Enable the MCP Server integration** in Home Assistant
+2. **Note the SSE endpoint URL** (typically `/mcp_server/sse`)
+3. **Set the environment variables**:
+   - `HOME_ASSISTANT_MCP_URL`: the MCP server SSE endpoint
+   - `HOME_ASSISTANT_TOKEN`: your long-lived access token
+
+The agent retries the MCP connection up to 3 times with progressive backoff and exits if it can't connect.
 
 ### Getting a Long-lived Access Token
 
@@ -119,55 +107,54 @@ The assistant uses MCP (Model Context Protocol) for Home Assistant integration, 
 
 ## Configuration
 
-The assistant can be configured through environment variables:
+All settings come from environment variables (see `config.py`):
 
 ```env
 # Agent settings
 AGENT_NAME=Friday
-AGENT_VOICE=default  # Uses default voice for Gemini 2.0 Flash Live
+AGENT_VOICE=default          # Gemini Realtime uses its default voice
 AGENT_TEMPERATURE=0.7
+AGENT_MAX_RESPONSE_LENGTH=1000
 AGENT_ENABLE_VIDEO=false
 AGENT_ENABLE_NOISE_CANCELLATION=true
 
 # Wake word settings
-WAKE_WORD_ENABLED=true
-WAKE_WORDS=friday,hey friday,sir friday
-WAKE_WORD_TIMEOUT=30
+AGENT_ENABLE_WAKE_WORD=true
+AGENT_WAKE_WORDS=hey_assistant,computer,friday
+AGENT_WAKEWORD_BACKEND=openwakeword
+AGENT_WAKE_WORD_DELAY=0.5
 
-# Logging settings
+# Home Assistant
+HA_MCP_RETRY_ATTEMPTS=3
+HA_MCP_TIMEOUT=30
+
+# Logging
 LOG_LEVEL=INFO
+LOG_FORMAT=%(asctime)s - %(name)s - %(levelname)s - %(message)s
 LOG_FILE_PATH=logs/agent.log
 ```
 
-**Note:** The Gemini 2.0 Flash Live model has limited voice support. The assistant uses the default voice to ensure compatibility. Custom voice selection is not currently supported for this model.
+**Note:** `AGENT_VOICE` is read into the config but not passed to the model — Gemini Realtime uses its default voice for compatibility.
 
 ## Usage
 
 ### Running the Assistant
 
-1. **Activate the virtual environment**:
+1. **Run the health check**:
    ```bash
-   source venv/bin/activate
+   uv run health_check.py
    ```
 
-2. **Run the health check**:
+2. **Start the assistant**:
    ```bash
-   python health_check.py
+   uv run agent.py console      # talk to it in the terminal
+   uv run agent.py dev          # dev worker, connects to LiveKit
+   uv run agent.py start        # production worker
    ```
 
-3. **Start the assistant**:
-   ```bash
-   python agent.py
-   ```
+   `agent.py` uses the LiveKit CLI, so it expects one of these subcommands.
 
 ### Voice Commands
-
-The assistant responds to natural language commands after being awakened:
-
-- **Wake Word Examples**:
-  - "Friday, what's the weather like?"
-  - "Hey Friday, turn on the living room light"
-  - "Sir Friday, show me all lights"
 
 - **Smart Home Control**:
   - "Turn on the living room light"
@@ -182,6 +169,8 @@ The assistant responds to natural language commands after being awakened:
   - "What time is it in Tokyo?"
   - "How's the system doing?"
 
+With wake word detection enabled, prefix commands with a configured wake word.
+
 ### Health Check
 
 The health check script verifies:
@@ -191,83 +180,80 @@ The health check script verifies:
 
 Run it before starting the assistant:
 ```bash
-python health_check.py
+uv run health_check.py
 ```
 
 ## Architecture
 
-- **Agent**: Main assistant logic with Google Realtime Model
-- **Wake Word Detection**: Text-based wake word recognition
-- **MCP Integration**: Home Assistant control via Model Context Protocol
-- **Tools**: Weather, web search, time, and system monitoring
-- **Prompts**: Sophisticated persona and interaction guidelines
-- **Configuration**: Centralized settings management
+- **Agent** (`agent.py`): session setup, MCP connection with retries, Gemini Realtime model
+- **Wake Word Detection**: optional RealtimeSTT STT with an openWakeWord backend
+- **MCP Integration**: Home Assistant control via `mcp.MCPServerHTTP`
+- **Tools** (`tools.py`): weather, web search, time, system status
+- **Prompts** (`prompts.py`): persona and interaction guidelines
+- **Configuration** (`config.py`): environment-driven settings
 
 ## Troubleshooting
 
-### Common Issues
-
 1. **Assistant Not Responding**:
-   - Make sure you're using a wake word (e.g., "Friday")
-   - Check that wake word detection is enabled
+   - If wake words are enabled, use one of the configured models (default `friday`)
+   - Check the log for "RealtimeSTT plugin not available" — wake words are off in that case
    - Verify microphone permissions
 
 2. **MCP Connection Failed**:
-   - Verify `HOME_ASSISTANT_MCP_URL` is correct
-   - Check that the MCP server is running in Home Assistant
-   - Ensure your access token has the necessary permissions
+   - Verify `HOME_ASSISTANT_MCP_URL` is correct and reachable
+   - Check that the MCP Server integration is running in Home Assistant
+   - Ensure your access token is valid
 
 3. **Voice Not Working**:
-   - Verify Google Cloud credentials are properly set
+   - Verify `GOOGLE_API_KEY` is set
    - Check microphone permissions
    - Ensure LiveKit credentials are correct
 
-4. **Home Assistant Control Issues**:
-   - Verify entity names and IDs
-   - Check Home Assistant logs for errors
-   - Ensure MCP server is properly configured
+4. **`ImportError: The 'mcp' package is required`**:
+   - Run `uv sync` — the `livekit-agents[mcp]` extra provides it
 
 ### Logs
 
-Check the logs for detailed error information:
 ```bash
 tail -f logs/agent.log
 ```
+
+Logging goes to the file, not stdout, so the terminal stays quiet while the agent runs.
 
 ## Development
 
 ### Project Structure
 
 ```
-lievkit/
+Livekit-Homeassistant/
 ├── agent.py              # Main agent entry point
 ├── config.py             # Configuration management
 ├── tools.py              # Tool implementations
 ├── prompts.py            # Agent prompts and instructions
 ├── health_check.py       # Health check script
-├── requirements.txt      # Python dependencies
-├── README.md            # This file
-└── logs/                # Log files directory
+├── test.py               # Home Assistant MCP/REST connectivity probe
+├── pyproject.toml        # Project metadata and dependencies
+├── uv.lock               # Pinned dependency versions
+├── .env                  # Secrets (gitignored)
+├── LICENSE               # MIT
+├── README.md             # This file
+└── logs/                 # Log files (gitignored)
 ```
 
 ### Adding New Tools
 
 1. Create the tool function in `tools.py`
 2. Add the `@function_tool()` decorator
-3. Import and register the tool in `agent.py`
+3. Import and register the tool in the `Assistant` tool list in `agent.py`
 4. Update prompts if needed
 
 ### Testing
 
-Run the health check to verify all components:
 ```bash
-python health_check.py
+uv run health_check.py    # config, MCP and system checks
+uv run test.py            # raw HA MCP/REST connectivity
 ```
 
 ## License
 
-[Add your license information here]
-
-## Contributing
-
-[Add contribution guidelines here] 
+MIT — see [LICENSE](LICENSE).
