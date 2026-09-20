@@ -28,14 +28,40 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Try to import RealtimeSTT after logger is configured
+try:
+    from livekit.plugins import realtimestt
+    REALTIMESTT_AVAILABLE = True
+    logger.info("RealtimeSTT plugin loaded successfully")
+except ImportError:
+    REALTIMESTT_AVAILABLE = False
+    logger.warning("RealtimeSTT plugin not available. Wake word functionality will be disabled.")
+
 class Assistant(Agent):
     def __init__(self) -> None:
+        # Configure STT with wake word support if available
+        stt_instance = None
+        if REALTIMESTT_AVAILABLE and config.agent.enable_wake_word:
+            try:
+                stt_config = {
+                    "wakeword_backend": config.agent.wakeword_backend,
+                    "wake_words": config.agent.wake_words,
+                    "enable_realtime_transcription": True,
+                    "wake_word_activation_delay": config.agent.wake_word_activation_delay
+                }
+                stt_instance = realtimestt.STT(options=stt_config)
+                logger.info(f"Wake word STT configured with words: {config.agent.wake_words}")
+            except Exception as e:
+                logger.error(f"Failed to configure wake word STT: {e}")
+                stt_instance = None
+
         super().__init__(
             instructions=AGENT_INSTRUCTION,
             llm=google.beta.realtime.RealtimeModel(
                 # Try without specifying voice to use default
                 temperature=config.agent.temperature,
             ),
+            stt=stt_instance,  # Add STT with wake word support
             tools=[
                 get_weather,
                 search_web,

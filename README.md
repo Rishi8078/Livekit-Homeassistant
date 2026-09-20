@@ -1,119 +1,273 @@
-# LiveKit AI Assistant for Home Assistant
+# LiveKit AI Assistant with Home Assistant MCP Integration
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+A sophisticated AI personal assistant built with LiveKit Agents that integrates with Home Assistant via MCP (Model Context Protocol). The assistant provides voice interaction, smart home control, weather information, web search, and more.
 
-A voice-controlled AI personal assistant built with **LiveKit Agents** that integrates seamlessly with **Home Assistant** via the **Model Context Protocol (MCP)**. This agent, codenamed "Friday," provides real-time voice interaction, smart home control, and access to external information.
+## Features
 
+- **Voice Assistant**: Real-time voice interaction with Google's Realtime Model
+- **Wake Word Detection**: Only responds when called by name (e.g., "Friday", "Hey Friday")
+- **Smart Home Control**: Full Home Assistant integration via MCP
+- **Weather Information**: Current weather for any city
+- **Web Search**: Real-time information lookup
+- **Time Management**: Local and timezone-specific time queries
+- **System Monitoring**: Health and status information
+- **Noise Cancellation**: Optional background noise reduction
+- **Multi-language Support**: Automatic language detection and response
 
-## 🌟 Features
+## Prerequisites
 
--   **🎙️ Real-time Voice Interaction**: Uses Google's Realtime Model for natural and responsive voice conversations.
--   **🏡 Full Smart Home Control**: Deep integration with Home Assistant using MCP for controlling lights, scenes, sensors, and more.
--   **🌤️ Real-time Information**: Fetches current weather, performs web searches, and provides time information for any location.
--   **🔇 Noise Cancellation**: Includes background noise reduction for clearer voice commands.
--   **🌐 Multi-language Support**: Automatically detects the user's language and responds accordingly.
--   **🩺 System Health Checks**: Built-in diagnostics to verify connections to all services.
+- Python 3.9+
+- Home Assistant instance with MCP server enabled
+- LiveKit account and credentials
+- Google Cloud credentials for speech services
 
----
+## Installation
 
-## 🔧 Prerequisites
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd lievkit
+   ```
 
--   Python 3.9+
--   A running Home Assistant instance with the MCP server add-on enabled.
--   A LiveKit account and API credentials.
--   Google Cloud credentials for speech-to-text and text-to-speech services.
+2. **Create virtual environment**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
----
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## 🚀 Installation & Setup
+4. **Set up environment variables**:
+   Create a `.env` file in the project root:
+   ```env
+   # LiveKit Configuration
+   LIVEKIT_URL=your_livekit_url
+   LIVEKIT_API_KEY=your_api_key
+   LIVEKIT_API_SECRET=your_api_secret
+   
+   # Google Cloud Configuration
+   GOOGLE_APPLICATION_CREDENTIALS=path/to/your/credentials.json
+   
+   # Home Assistant MCP Configuration
+   HOME_ASSISTANT_MCP_URL=https://your-ha-instance/mcp_server/sse
+   HOME_ASSISTANT_TOKEN=your_long_lived_access_token
+   
+   # Wake Word Configuration (Optional)
+   WAKE_WORD_ENABLED=true
+   WAKE_WORDS=friday,hey friday,sir friday,mr friday,good morning friday
+   WAKE_WORD_TIMEOUT=30
+   ```
 
-1.  **Clone the Repository**:
-    ```bash
-    git clone [https://github.com/Rishi8078/Livekit-Homeassistant.git](https://github.com/Rishi8078/Livekit-Homeassistant.git)
-    cd livekit-home-assistant-agent
-    ```
+## Wake Word Functionality
 
-2.  **Create and Activate a Virtual Environment**:
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-    ```
+The assistant uses wake word detection to only respond when called by name:
 
-3.  **Install Dependencies**:
-    ```bash
-    pip install -r requirements.txt
-    ```
+### **Default Wake Words:**
+- "Friday" - Basic wake word
+- "Hey Friday" - Casual wake word
+- "Sir Friday" - Formal wake word
+- "Mr Friday" - Alternative formal wake word
+- "Good morning Friday" - Greeting wake word
 
-4.  **Configure Environment Variables**:
-    Create a `.env` file in the root of the project and add the following configuration.
+### **How It Works:**
+1. **Sleep Mode**: Assistant ignores all speech until wake word is detected
+2. **Active Listening**: After wake word, assistant listens for 30 seconds (configurable)
+3. **Command Processing**: Commands are processed normally during active listening
+4. **Auto-Sleep**: Returns to sleep mode after timeout
 
-    ```env
-    # LiveKit Configuration
-    LIVEKIT_URL=YOUR_LIVEKIT_URL
-    LIVEKIT_API_KEY=YOUR_API_KEY
-    LIVEKIT_API_SECRET=YOUR_API_SECRET
+### **Configuration:**
+```env
+# Enable/disable wake word detection
+WAKE_WORD_ENABLED=true
 
-    # Google Cloud Configuration
-    # Make sure this points to your service account JSON file
-    GOOGLE_APPLICATION_CREDENTIALS=path/to/your/credentials.json
+# Custom wake words (comma-separated)
+WAKE_WORDS=friday,hey friday,sir friday
 
-    # Home Assistant MCP Configuration
-    HOME_ASSISTANT_MCP_URL=https://your-ha-instance/mcp_server/sse
-    HOME_ASSISTANT_TOKEN=YOUR_LONG_LIVED_ACCESS_TOKEN
-    
-    ```
+# How long to stay active after wake word (seconds)
+WAKE_WORD_TIMEOUT=30
+```
 
----
+## Home Assistant MCP Setup
 
-## 🏠 Home Assistant MCP Setup
+The assistant uses MCP (Model Context Protocol) for Home Assistant integration, which provides:
+- Real-time entity state monitoring
+- Complete service control capabilities
+- Scene activation and automation control
+- Color and brightness control for lights
+- All Home Assistant features through the MCP interface
 
-This agent uses the **Model Context Protocol (MCP)** for a powerful, real-time connection to Home Assistant.
+### Setting up MCP in Home Assistant
 
-1.  **Install the MCP Server Add-on**: Find and install the "MCP Server" add-on from the Home Assistant Add-on Store.
-2.  **Configure the Add-on**: Set it up with your Home Assistant URL and a long-lived access token.
-3.  **Get the SSE Endpoint**: Once the add-on is running, copy the SSE endpoint URL.
-4.  **Create a Long-Lived Access Token**:
-    -   In Home Assistant, go to your user profile page.
-    -   Scroll down to "Long-Lived Access Tokens" and click "Create Token".
-    -   Name it (e.g., "LiveKit Agent") and copy the generated token.
-5.  **Update your `.env` file** with the `HOME_ASSISTANT_MCP_URL` and `HOME_ASSISTANT_TOKEN`.
+1. **Install the MCP Server add-on** in Home Assistant
+2. **Configure the MCP Server** with your Home Assistant URL and token
+3. **Enable the MCP Server** and note the SSE endpoint URL
+4. **Set the environment variables**:
+   - `HOME_ASSISTANT_MCP_URL`: The MCP server SSE endpoint
+   - `HOME_ASSISTANT_TOKEN`: Your long-lived access token
 
----
+### Getting a Long-lived Access Token
 
-## ▶️ Usage
+1. In Home Assistant, go to **Settings** → **Users**
+2. Click on your user profile
+3. Scroll down to **Long-Lived Access Tokens**
+4. Click **Create Token**
+5. Give it a name (e.g., "LiveKit Assistant")
+6. Copy the generated token
 
-1.  **Run the Health Check**: Before starting, it's a good idea to run the health check to ensure all connections are working.
-    ```bash
-    python health_check.py
-    ```
+## Configuration
 
-2.  **Start the Agent**:
-    ```bash
-    python agent.py console
-    ```
+The assistant can be configured through environment variables:
 
-3.  **Interact with the Agent**:
-    Once the agent is running and connected to a LiveKit room, you can start interacting with it using its wake word.
+```env
+# Agent settings
+AGENT_NAME=Friday
+AGENT_VOICE=default  # Uses default voice for Gemini 2.0 Flash Live
+AGENT_TEMPERATURE=0.7
+AGENT_ENABLE_VIDEO=false
+AGENT_ENABLE_NOISE_CANCELLATION=true
 
-    -   *"Friday, what's the weather in London?"*
-    -   *"Hey Friday, turn on the living room lights."*
-    -   *"Friday, set the bedroom light to blue."*
-    -   *"Hey Friday, activate the movie time scene."*
+# Wake word settings
+WAKE_WORD_ENABLED=true
+WAKE_WORDS=friday,hey friday,sir friday
+WAKE_WORD_TIMEOUT=30
 
----
+# Logging settings
+LOG_LEVEL=INFO
+LOG_FILE_PATH=logs/agent.log
+```
 
-## 🤝 Contributing
+**Note:** The Gemini 2.0 Flash Live model has limited voice support. The assistant uses the default voice to ensure compatibility. Custom voice selection is not currently supported for this model.
 
-Contributions are welcome! Please feel free to submit a pull request or open an issue to discuss your ideas.
+## Usage
 
-1.  Fork the repository.
-2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4.  Push to the branch (`git push origin feature/AmazingFeature`).
-5.  Open a Pull Request.
+### Running the Assistant
 
----
+1. **Activate the virtual environment**:
+   ```bash
+   source venv/bin/activate
+   ```
 
-## 📄 License
+2. **Run the health check**:
+   ```bash
+   python health_check.py
+   ```
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+3. **Start the assistant**:
+   ```bash
+   python agent.py
+   ```
+
+### Voice Commands
+
+The assistant responds to natural language commands after being awakened:
+
+- **Wake Word Examples**:
+  - "Friday, what's the weather like?"
+  - "Hey Friday, turn on the living room light"
+  - "Sir Friday, show me all lights"
+
+- **Smart Home Control**:
+  - "Turn on the living room light"
+  - "Set the bedroom light to blue"
+  - "Show me all lights"
+  - "Activate the movie scene"
+  - "What's the temperature in the house?"
+
+- **Information Queries**:
+  - "What's the weather like in London?"
+  - "Search for the latest news"
+  - "What time is it in Tokyo?"
+  - "How's the system doing?"
+
+### Health Check
+
+The health check script verifies:
+- Environment variable configuration
+- MCP connection to Home Assistant
+- Basic system functionality
+
+Run it before starting the assistant:
+```bash
+python health_check.py
+```
+
+## Architecture
+
+- **Agent**: Main assistant logic with Google Realtime Model
+- **Wake Word Detection**: Text-based wake word recognition
+- **MCP Integration**: Home Assistant control via Model Context Protocol
+- **Tools**: Weather, web search, time, and system monitoring
+- **Prompts**: Sophisticated persona and interaction guidelines
+- **Configuration**: Centralized settings management
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Assistant Not Responding**:
+   - Make sure you're using a wake word (e.g., "Friday")
+   - Check that wake word detection is enabled
+   - Verify microphone permissions
+
+2. **MCP Connection Failed**:
+   - Verify `HOME_ASSISTANT_MCP_URL` is correct
+   - Check that the MCP server is running in Home Assistant
+   - Ensure your access token has the necessary permissions
+
+3. **Voice Not Working**:
+   - Verify Google Cloud credentials are properly set
+   - Check microphone permissions
+   - Ensure LiveKit credentials are correct
+
+4. **Home Assistant Control Issues**:
+   - Verify entity names and IDs
+   - Check Home Assistant logs for errors
+   - Ensure MCP server is properly configured
+
+### Logs
+
+Check the logs for detailed error information:
+```bash
+tail -f logs/agent.log
+```
+
+## Development
+
+### Project Structure
+
+```
+lievkit/
+├── agent.py              # Main agent entry point
+├── config.py             # Configuration management
+├── tools.py              # Tool implementations
+├── prompts.py            # Agent prompts and instructions
+├── health_check.py       # Health check script
+├── requirements.txt      # Python dependencies
+├── README.md            # This file
+└── logs/                # Log files directory
+```
+
+### Adding New Tools
+
+1. Create the tool function in `tools.py`
+2. Add the `@function_tool()` decorator
+3. Import and register the tool in `agent.py`
+4. Update prompts if needed
+
+### Testing
+
+Run the health check to verify all components:
+```bash
+python health_check.py
+```
+
+## License
+
+[Add your license information here]
+
+## Contributing
+
+[Add contribution guidelines here] 
