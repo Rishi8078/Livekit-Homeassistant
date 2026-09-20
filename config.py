@@ -49,33 +49,17 @@ class AgentConfig:
     max_response_length: int = 1000
     enable_video: bool = False
     enable_noise_cancellation: bool = True
-    # Wake word configuration
-    enable_wake_word: bool = True
-    wake_words: list = None
-    wakeword_backend: str = "openwakeword"
-    wake_word_activation_delay: float = 0.5
-
-    def __post_init__(self):
-        if self.wake_words is None:
-            self.wake_words = ["hey_assistant", "computer", "friday"]
 
     @classmethod
     def from_env(cls) -> 'AgentConfig':
         """Create config from environment variables."""
-        wake_words_str = os.getenv("AGENT_WAKE_WORDS", "hey_assistant,computer,friday")
-        wake_words = [w.strip() for w in wake_words_str.split(",") if w.strip()]
-        
         return cls(
             name=os.getenv("AGENT_NAME", "Friday"),
             voice=os.getenv("AGENT_VOICE", "default"),
             temperature=float(os.getenv("AGENT_TEMPERATURE", "0.7")),
             max_response_length=int(os.getenv("AGENT_MAX_RESPONSE_LENGTH", "1000")),
             enable_video=os.getenv("AGENT_ENABLE_VIDEO", "false").lower() == "true",
-            enable_noise_cancellation=os.getenv("AGENT_ENABLE_NOISE_CANCELLATION", "true").lower() == "true",
-            enable_wake_word=os.getenv("AGENT_ENABLE_WAKE_WORD", "true").lower() == "true",
-            wake_words=wake_words,
-            wakeword_backend=os.getenv("AGENT_WAKEWORD_BACKEND", "openwakeword"),
-            wake_word_activation_delay=float(os.getenv("AGENT_WAKE_WORD_DELAY", "0.5"))
+            enable_noise_cancellation=os.getenv("AGENT_ENABLE_NOISE_CANCELLATION", "true").lower() == "true"
         )
 
 @dataclass
@@ -124,11 +108,6 @@ def load_config() -> AppConfig:
     config.agent.max_response_length = int(os.getenv("AGENT_MAX_RESPONSE_LENGTH", config.agent.max_response_length))
     config.agent.enable_video = os.getenv("AGENT_ENABLE_VIDEO", "false").lower() == "true"
     config.agent.enable_noise_cancellation = os.getenv("AGENT_ENABLE_NOISE_CANCELLATION", "true").lower() == "true"
-    config.agent.enable_wake_word = os.getenv("AGENT_ENABLE_WAKE_WORD", "true").lower() == "true"
-    wake_words_str = os.getenv("AGENT_WAKE_WORDS", "hey_assistant,computer,friday")
-    config.agent.wake_words = [w.strip() for w in wake_words_str.split(",") if w.strip()]
-    config.agent.wakeword_backend = os.getenv("AGENT_WAKEWORD_BACKEND", "openwakeword")
-    config.agent.wake_word_activation_delay = float(os.getenv("AGENT_WAKE_WORD_DELAY", "0.5"))
 
     # Logging configuration
     config.logging.level = os.getenv("LOG_LEVEL", config.logging.level)

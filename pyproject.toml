@@ -9,7 +9,6 @@ dependencies = [
     "livekit-plugins-silero",
     "livekit-plugins-google",
     "livekit-plugins-noise-cancellation",
-    "livekit-plugins-realtimestt",
     "mem0ai",
     "duckduckgo-search",
     "langchain-community",

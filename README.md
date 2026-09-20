@@ -6,7 +6,6 @@ A voice assistant built on LiveKit Agents that controls Home Assistant over MCP 
 
 - **Voice Assistant**: Real-time voice interaction with Google's Gemini Realtime model
 - **Smart Home Control**: Home Assistant integration via MCP
-- **Wake Word Detection**: Optional, via the RealtimeSTT plugin and openWakeWord
 - **Weather Information**: Current weather for any city
 - **Web Search**: DuckDuckGo lookups
 - **Time Management**: Local and timezone-specific time queries
@@ -54,30 +53,6 @@ A voice assistant built on LiveKit Agents that controls Home Assistant over MCP 
    HOME_ASSISTANT_TOKEN=your_long_lived_access_token
    ```
 
-## Wake Word Functionality
-
-Wake word detection is optional and comes from the `livekit-plugins-realtimestt` plugin. If the plugin is missing or fails to configure, `agent.py` logs a warning and runs without it — the agent then responds to all speech.
-
-Wake words are **openWakeWord model names**, not free-form phrases. Defaults: `hey_assistant`, `computer`, `friday`.
-
-### Configuration
-
-```env
-# Enable/disable wake word detection
-AGENT_ENABLE_WAKE_WORD=true
-
-# Wake word models (comma-separated openWakeWord names)
-AGENT_WAKE_WORDS=hey_assistant,computer,friday
-
-# Wake word backend
-AGENT_WAKEWORD_BACKEND=openwakeword
-
-# Seconds of silence before wake word detection arms
-AGENT_WAKE_WORD_DELAY=0.5
-```
-
-There is no sleep/active-listening timeout: once the wake word fires, the session behaves like a normal LiveKit voice session.
-
 ## Home Assistant MCP Setup
 
 The assistant uses MCP for Home Assistant integration, which provides:
@@ -117,12 +92,6 @@ AGENT_TEMPERATURE=0.7
 AGENT_MAX_RESPONSE_LENGTH=1000
 AGENT_ENABLE_VIDEO=false
 AGENT_ENABLE_NOISE_CANCELLATION=true
-
-# Wake word settings
-AGENT_ENABLE_WAKE_WORD=true
-AGENT_WAKE_WORDS=hey_assistant,computer,friday
-AGENT_WAKEWORD_BACKEND=openwakeword
-AGENT_WAKE_WORD_DELAY=0.5
 
 # Home Assistant
 HA_MCP_RETRY_ATTEMPTS=3
@@ -169,8 +138,6 @@ LOG_FILE_PATH=logs/agent.log
   - "What time is it in Tokyo?"
   - "How's the system doing?"
 
-With wake word detection enabled, prefix commands with a configured wake word.
-
 ### Health Check
 
 The health check script verifies:
@@ -186,7 +153,6 @@ uv run health_check.py
 ## Architecture
 
 - **Agent** (`agent.py`): session setup, MCP connection with retries, Gemini Realtime model
-- **Wake Word Detection**: optional RealtimeSTT STT with an openWakeWord backend
 - **MCP Integration**: Home Assistant control via `mcp.MCPServerHTTP`
 - **Tools** (`tools.py`): weather, web search, time, system status
 - **Prompts** (`prompts.py`): persona and interaction guidelines
@@ -195,9 +161,9 @@ uv run health_check.py
 ## Troubleshooting
 
 1. **Assistant Not Responding**:
-   - If wake words are enabled, use one of the configured models (default `friday`)
-   - Check the log for "RealtimeSTT plugin not available" — wake words are off in that case
    - Verify microphone permissions
+   - Check `logs/agent.log` — the agent logs to the file, not stdout
+   - The agent responds to all speech; there is no wake word gating
 
 2. **MCP Connection Failed**:
    - Verify `HOME_ASSISTANT_MCP_URL` is correct and reachable
